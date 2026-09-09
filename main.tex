@@ -1,0 +1,2556 @@
+\documentclass[a4paper, 10pt]{article}
+
+\usepackage[top=2cm, bottom=0.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{color}
+\usepackage[english, russian]{babel}
+
+% Оформление листинга кода
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+  backgroundcolor=\color{white},   % цвет фона
+%   basicstyle=\footnotesize,        % размер шрифта
+  basicstyle=\scriptsize,          % размер шрифта
+  breakatwhitespace=false,         % автоматические переносы только в местах пробелов
+  breaklines=true,                 % автоматические переносы строк
+  captionpos=b,                    % место для названия
+  commentstyle=\color{mygreen},    % стиль комментариев
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  extendedchars=true,              % позволяет использовать не ASCII символы
+  frame=single,                    % рамка вокруг кода
+  keepspaces=true,                 % сохраняет пробелы в тексте
+  keywordstyle=\color{blue},       % стиль ключевых слов
+  language=C++,                    % язык программирования
+  numbers=left,                    % нумерация строк слева
+  numbersep=5pt,                   % расстояние от кода до номеров
+  numberstyle=\tiny\color{mygray}, % стиль номеров строк
+  rulecolor=\color{black},         % цвет рамки
+  showspaces=false,                % показывать пробелы?
+  showstringspaces=false,          % показывать пробелы в строках?
+  showtabs=false,                  % показывать табуляции?
+  stepnumber=1,                    % шаг между номерами строк
+  stringstyle=\color{mymauve},     % стиль строк
+  tabsize=4,                       % размер табуляции
+}
+
+% Переопределение стиля страницы
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\fancyhead[L]{Financial University: FFT-HFT-WTF (Glazov, Enns, Semenov)}
+\fancyhead[R]{Page \thepage\ of 24}
+
+\usepackage[utf8]{inputenc}
+\setlength{\headheight}{14.5pt}
+
+
+\begin{document}
+
+{\Large \textbf{Функция Эйлера}}
+\begin{lstlisting}
+int phi (int n) {
+	int result = n;
+	for (int i=2; i*i<=n; ++i)
+		if (n % i == 0) {
+			while (n % i == 0)
+				n /= i;
+			result -= result / i;
+		}
+	if (n > 1)
+		result -= result / n;
+	return result;
+}
+\end{lstlisting}
+
+{\Large \textbf{Расширенный алгоритм Евклида}}
+\begin{lstlisting}
+std::tuple<int, int, int> extended_gcd(int a, int b) {
+    if (b == 0) {
+        return {a, 1, 0};
+    }
+    int g, x1, y1;
+    std::tie(g, x1, y1) = extended_gcd(b, a % b);
+    int x = y1;
+    int y = x1 - (a / b) * y1;
+    return {g, x, y};
+}
+\end{lstlisting}
+
+{\Large \textbf{Код Грея}}
+\begin{lstlisting}
+int g (int n) {
+	return n ^ (n >> 1);
+}
+int rev_g (int g) {
+	int n = 0;
+	for (; g; g>>=1)
+		n ^= g;
+	return n;
+}
+\end{lstlisting}
+
+{\Large \textbf{Мосты}}
+\begin{lstlisting}
+void dfs(int v, int height, int prev) {
+    used[v] = true;
+    h[v] = height;
+    d[v] = height;
+    for (auto [u, i] : g[v]) {
+        if (!used[u]) {
+            dfs(u, height + 1, v);
+        }
+        if (u != prev) {
+            d[v] = min(d[v], d[u]);
+            if (d[u] > h[v]) {
+                bridges.emplace_back(i);
+            }
+        }
+    }
+}
+void find_bridges() {
+	for (int v = 0; v < n; ++v) {
+        if (!used[v]) {
+            dfs(v, 0, -1);
+        }
+    }
+
+}
+\end{lstlisting}
+
+{\Large \textbf{Конденсация графа}}
+\begin{lstlisting}
+vector<vector<int>> g;
+vector<vector<int>> gr;
+vector<bool> used;
+vector<int> topsort;
+vector<vector<int>> components;
+map<int, int> vertex_to_comp;
+void dfs(int v) {
+    used[v] = true;
+    for (int u : g[v]) {
+        if (!used[u]) {
+            dfs(u);
+        }
+    }
+    topsort.emplace_back(v);
+}
+void dfs2(int v) {
+    used[v] = true;
+    components.back().emplace_back(v);
+    vertex_to_comp[v] = components.size() - 1;
+    for (int u : gr[v]) {
+        if (!used[u]) {
+            dfs2(u);
+        }
+    }
+}
+int main() {
+    int n, m;
+    cin >> n >> m;
+    g.resize(n);
+    gr.resize(n);
+    used.assign(n, false);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        u--;
+        v--;
+        g[u].emplace_back(v);
+        gr[v].emplace_back(u);
+    }
+    for (int v = 0; v < n; ++v) {
+        if (!used[v]) {
+            dfs(v);
+        }
+    }
+    fill(used.begin(), used.end(), false);
+    reverse(topsort.begin(), topsort.end());
+    for (int i = 0; i < n; ++i) {
+        if (!used[topsort[i]]) {
+            components.push_back(vector<int>());
+            dfs2(topsort[i]);
+        }
+	}
+}
+\end{lstlisting}
+{\Large \textbf{Форд-Беллман (NM)}}
+\begin{lstlisting}
+void Ford_Bellman(int start) {
+    for (int i = 1; i <= n; ++i)
+        d[i] = INF;
+    d[start] = 0;
+    vector<int> cnt(n + 1, 0);
+    queue<pair<int, int> > q;
+    q.push({start, 0});
+    while (!q.empty()) {
+        auto [v, dist] = q.front();
+        q.pop();
+        if (dist > d[v])
+            continue;
+        for (auto [i, w]: g[v]) {
+            if (d[v] + w < d[i]) {
+                d[i] = d[v] + w;
+                cnt[i] = cnt[v] + 1;
+                if (cnt[i] >= n)
+                    return; // отрицательный цикл
+                q.push({i, d[i]});
+            }
+        }
+    }
+}
+\end{lstlisting}
+{\Large \textbf{Точки Сочленения}}
+\begin{lstlisting}
+void dfs (int v, int p = -1) {
+	used[v] = true;
+	tin[v] = fup[v] = timer++;
+	int children = 0;
+	for (size_t i=0; i<g[v].size(); ++i) {
+		int to = g[v][i];
+		if (to == p)  continue;
+		if (used[to])
+			fup[v] = min (fup[v], tin[to]);
+		else {
+			dfs (to, v);
+			fup[v] = min (fup[v], fup[to]);
+			if (fup[to] >= tin[v] && p != -1)
+				IS_CUTPOINT(v);
+			++children;
+		}
+	}
+	if (p == -1 && children > 1)
+		IS_CUTPOINT(v);
+}
+ 
+int main() {
+	int n;
+        ...
+	timer = 0;
+	for (int i=0; i<n; ++i)
+		used[i] = false;
+	dfs (0);
+}
+\end{lstlisting}
+{\Large \textbf{Кун}}
+\begin{lstlisting}
+#include <bits/stdc++.h>
+
+using namespace std;
+using i64 = long long;
+
+vector<vector<int>> g;
+vector<int> mt;
+vector<bool> used;
+
+bool dfs(int v) {
+    if (used[v]) {
+        return false;
+    }
+    used[v] = true;
+    for (int u : g[v]) {
+        if (mt[u] == -1 || dfs(mt[u])) {
+            mt[u] = v;
+            return true;
+        }
+    }
+    return false;
+}
+
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+
+    g.resize(n);
+    mt.resize(m, -1);
+
+    for (int i = 0; i < n; ++i) {
+        int v;
+        cin >> v;
+        while (v != 0) {
+            v--;
+            g[i].emplace_back(v);
+            cin >> v;
+        }
+    }
+
+    int cnt = 0;
+
+    for (int i = 0; i < n; ++i) {
+        used.assign(n, false);
+        if (dfs(i)) {
+            cnt++;
+        }
+    }
+
+    cout << cnt << '\n';
+}
+\end{lstlisting}
+
+{\Large \textbf{Максимальное паросочетание (Диница) $O(m \sqrt{n})$}}
+\begin{lstlisting}
+#include <bits/stdc++.h>
+
+using namespace std;
+using i64 = long long;
+
+const int INF = 1e9;
+
+struct Edge {
+    int to;
+    int rev;
+    int flow;
+    int capacity;
+};
+
+vector<Edge> edges;
+vector<vector<int>> g;
+vector<int> dist;
+vector<int> current_edge;
+int S, T;
+int total_flow = 0;
+
+int dfs(int v, int min_capacity) {
+    if (v == T) {
+        return min_capacity;
+    }
+    
+    for (; current_edge[v] < g[v].size(); ++current_edge[v]) {
+        int i = g[v][current_edge[v]];
+        Edge& e = edges[i];
+        
+        if (dist[e.to] == dist[v] + 1 && e.capacity - e.flow > 0) {
+            int flow = dfs(e.to, min(min_capacity, e.capacity - e.flow));
+            if (flow > 0) {
+                e.flow += flow;
+                edges[e.rev].flow -= flow;
+                return flow;
+            }
+        }
+    }
+    return 0;
+}
+
+bool bfs() {
+    fill(dist.begin(), dist.end(), -1);
+    dist[S] = 0;
+    queue<int> q;
+    q.push(S);
+    
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+        
+        for (int i : g[v]) {
+            Edge& e = edges[i];
+            if (e.capacity - e.flow > 0 && dist[e.to] == -1) {
+                dist[e.to] = dist[v] + 1;
+                q.push(e.to);
+            }
+        }
+    }
+
+    return dist[T] != -1;
+}
+
+void max_flow() {
+    while (bfs()) {
+        fill(current_edge.begin(), current_edge.end(), 0);
+        while (true) {
+            int flow = dfs(S, INF);
+            if (flow <= 0) {
+                break;
+            }
+            total_flow += flow;
+        }
+    }
+}
+
+void add_edge(int from, int to, int capacity) {
+    int forward_edge = edges.size();
+    int backward_edge = forward_edge + 1;
+    
+    g[from].push_back(forward_edge);
+    g[to].push_back(backward_edge);
+    
+    edges.push_back({to, backward_edge, 0, capacity});
+    edges.push_back({from, forward_edge, 0, 0});
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    int n, m;
+    cin >> n >> m;
+    
+    g.resize(n);
+    current_edge.resize(n);
+    dist.resize(n);
+    
+    for (int i = 0; i < m; ++i) {
+        int u, v, c;
+        cin >> u >> v;
+        --u; --v;
+        
+        add_edge(u, v, 1);
+        add_edge(v, u, 1);
+    }
+    
+    S = 0;
+    T = n - 1;
+    max_flow();
+    
+    cout << total_flow << '\n';
+    
+    for (int i = 0; i < edges.size(); i += 4) {
+        int flow = edges[i].flow;
+    }
+    
+    return 0;
+}
+\end{lstlisting}
+
+{\Large \textbf{Прима}}
+\begin{lstlisting}
+int n;
+vector < vector<int> > g;
+const int INF = 1000000000;
+vector<bool> used (n);
+vector<int> min_e (n, INF), sel_e (n, -1);
+min_e[0] = 0;
+for (int i=0; i<n; ++i) {
+	int v = -1;
+	for (int j=0; j<n; ++j)
+		if (!used[j] && (v == -1 || min_e[j] < min_e[v]))
+			v = j;
+	if (min_e[v] == INF) {
+		cout << "No MST!";
+		exit(0);
+	}
+	used[v] = true;
+	if (sel_e[v] != -1)
+		cout << v << " " << sel_e[v] << endl;
+	for (int to=0; to<n; ++to)
+		if (g[v][to] < min_e[to]) {
+			min_e[to] = g[v][to];
+			sel_e[to] = v;
+		}
+}
+\end{lstlisting}
+{\Large \textbf{Отрицательный цикл}}
+\begin{lstlisting}
+struct edge {
+	int a, b, cost;
+};
+int n, m;
+vector<edge> e;
+const int INF = 1000000000;
+void solve() {
+	vector<int> d (n);
+	vector<int> p (n, -1);
+	int x;
+	for (int i=0; i<n; ++i) {
+		x = -1;
+		for (int j=0; j<m; ++j)
+			if (d[e[j].b] > d[e[j].a] + e[j].cost) {
+				d[e[j].b] = max (-INF, d[e[j].a] + e[j].cost);
+				p[e[j].b] = e[j].a;
+				x = e[j].b;
+			}
+	}
+	if (x == -1)
+		cout << "No negative cycle found.";
+	else {
+		int y = x;
+		for (int i=0; i<n; ++i)
+			y = p[y];
+		vector<int> path;
+		for (int cur=y; ; cur=p[cur]) {
+			path.push_back (cur);
+			if (cur == y && path.size() > 1)  break;
+		}
+		reverse (path.begin(), path.end());
+		cout << "Negative cycle: ";
+		for (size_t i=0; i<path.size(); ++i)
+			cout << path[i] << ' ';
+	}
+}
+\end{lstlisting}
+{\Large \textbf{LCA}}
+\begin{lstlisting}
+const int N = 1000010, LOG = 21;
+vector <int> g[N];
+int tin[N], tout[N], timer = 0;
+int up[LOG][N];
+
+void dfs(int v, int p) {
+    tin[v] = ++timer;
+    up[0][v] = (p == -1 ? v : p);
+    for (int i = 1; i < LOG; ++i) {
+        up[i][v] = up[i - 1][up[i - 1][v]];
+    }
+    for (int i : g[v]) {
+        if (i == p) {
+            continue;
+        }
+        dfs(i, v);
+    }
+    tout[v] = timer;
+}
+
+int upper(int a, int b) {
+    return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int LCA(int a, int b) {
+    if (upper(a, b)) {
+        return a;
+    }
+    if (upper(b, a)) {
+        return b;
+    }
+    for (int i = LOG - 1; i >= 0; --i) {
+        if (!upper(up[i][a], b)) {
+            a = up[i][a];
+        }
+    }
+    return up[0][a];
+}
+\end{lstlisting}
+
+{\Large \textbf{Максимальный поток (Масштабирование, MM logC)}}
+\begin{lstlisting}
+struct edge {
+    ll to, c, f;
+};
+
+const int N = 1010;
+ll cur_flow, s, t;
+ll d[N], ptr[N];
+vector<int> g[N];
+vector<edge> e;
+
+void init() {
+    for (int i = 1; i < N; ++i) {
+        d[i] = inf;
+        ptr[i] = 0;
+    }
+}
+
+void add(ll a, ll b, ll c) {
+    g[a].push_back(sz(e));
+    e.push_back({b, c, 0});
+    g[b].push_back(sz(e));
+    e.push_back({a, 0, 0});
+}
+
+int bfs() {
+    queue<ll> q;
+    q.push(s);
+    d[s] = 0;
+    while (!q.empty()) {
+        ll v = q.front();
+        q.pop();
+        for (int i: g[v]) {
+            if (e[i].c - e[i].f >= cur_flow && d[e[i].to] == inf) {
+                d[e[i].to] = d[v] + 1;
+                q.push(e[i].to);
+            }
+        }
+    }
+    return (d[t] != inf);
+}
+
+int dfs(ll v) {
+    if (v == t)
+        return 1;
+    for (ll i = ptr[v]; i < sz(g[v]); ++i) {
+        int num = g[v][i];
+        if (d[e[num].to] == d[v] + 1 && e[num].c - e[num].f >= cur_flow) {
+            int x = dfs(e[num].to);
+            if (x) {
+                e[num].f += cur_flow;
+                e[num ^ 1].f -= cur_flow;
+                return 1;
+            }
+        }
+        ++ptr[v];
+    }
+    return 0;
+}
+
+ll max_flow() {
+    ll res = 0;
+    for (ll power = 32; power >= 0; --power) {
+        cur_flow = (1ll << power);
+        init();
+        while (bfs()) {
+            int x = dfs(s);
+            while (x) {
+                res += cur_flow;
+                x = dfs(s);
+            }
+            init();
+        }
+    }
+    return res;
+}
+\end{lstlisting}
+
+{\Large \textbf{RMQ}}
+\begin{lstlisting}
+#include <cstring>
+#include <iostream>
+
+using namespace std;
+
+using i32 = int;
+using i64 = long long;
+
+const int maxn = 1e5 + 1;
+const int logn = 17;
+
+int a[maxn], mn[logn][maxn];
+
+int rmq(int l, int r) {
+    int t = __lg(r - l + 1);
+    return min(mn[t][l], mn[t][r + 1 - (1 << t)]);
+}
+
+int main() {
+    int n, m;
+
+    memcpy(mn[0], a, sizeof a);
+    for (int l = 0; l < logn - 1; ++l) {
+        for (int i = 0; i + (2 << l) <= n; ++i) {
+            mn[l + 1][i] = min(mn[l][i], mn[l][i + (1 << l)]);
+        }
+    }
+
+    int ansi = rmq(min(u, v) - 1, max(u, v) - 1);
+
+    for (int i = 1; i < m; ++i) {
+        ansi = rmq(min(u, v) - 1, max(u, v) - 1);
+    }
+
+    return 0;
+}
+\end{lstlisting}
+
+{\Large \textbf{Максимальный поток (NNN)}}
+\begin{lstlisting}
+const int INF = 1000*1000*1000;
+int main() {
+	int n;
+	vector < vector<int> > c (n, vector<int> (n));
+	int s, t;
+	// cin n c t s
+	vector<int> e (n);
+	vector<int> h (n);
+	h[s] = n-1;
+	vector < vector<int> > f (n, vector<int> (n));
+	for (int i=0; i<n; ++i) {
+		f[s][i] = c[s][i];
+		f[i][s] = -f[s][i];
+		e[i] = c[s][i];
+	}
+	vector<int> maxh (n);
+	int sz = 0;
+	for (;;) {
+		if (!sz)
+			for (int i=0; i<n; ++i)
+				if (i != s && i != t && e[i] > 0) {
+					if (sz && h[i] > h[maxh[0]])
+						sz = 0;
+					if (!sz || h[i] == h[maxh[0]])
+						maxh[sz++] = i;
+				}
+		if (!sz)  break;
+		while (sz) {
+			int i = maxh[sz-1];
+			bool pushed = false;
+			for (int j=0; j<n && e[i]; ++j)
+				if (c[i][j]-f[i][j] > 0 && h[i] == h[j]+1) {
+					pushed = true;
+					int addf = min (c[i][j]-f[i][j], e[i]);
+					f[i][j] += addf,  f[j][i] -= addf;
+					e[i] -= addf,  e[j] += addf;
+					if (e[i] == 0)  --sz;
+				}
+			if (!pushed) {
+				h[i] = INF;
+				for (int j=0; j<n; ++j)
+					if (c[i][j]-f[i][j] > 0 && h[j]+1 < h[i])
+						h[i] = h[j]+1;
+				if (h[i] > h[maxh[0]]) {
+					sz = 0;
+					break;
+				}
+			}
+		}
+	} 
+}
+\end{lstlisting}
+
+{\Large \textbf{Стрессы}}
+\begin{lstlisting}
+import os
+ti = 0 # seed number
+while True:
+    os.system(f"python3 gen.py {ti} > .in")
+    return_code = os.system("./correct < .in > .outc && ./incorrect < .in > .outi")
+    if return_code:
+        print("re:", ti)
+        exit()
+    if open(".outi").read() != open(".outc").read():
+        print("wa:", ti)
+        exit()
+    ti+=1
+    if ti % 25 == 0:
+        print(ti)
+\end{lstlisting}
+\begin{lstlisting}
+import random
+import sys
+seed = int(sys.argv[1])
+random.seed(seed)
+\end{lstlisting}
+
+{\Large \textbf{Санитайзеры}}
+\begin{lstlisting}
+[G++ fast run]
+g++ -std=c++20 -O2 -pipe -Wall -Wextra -Wshadow -Wconversion -Wno-unused-result -DLOCAL -static -s main.cpp -o main.exe && main.exe
+[G++ with sanitizers (ASan+UBSan)]
+g++ -std=c++20 -O1 -g -Wall -Wextra -Wshadow -fno-omit-frame-pointer -fsanitize=address,undefined main.cpp -o main_asan.exe && main_asan.exe
+[MSVC fast run]
+cl /std:c++20 /O2 /EHsc /W4 /DLOCAL /nologo main.cpp && main.exe
+[MSVC with AddressSanitizer]
+cl /std:c++20 /O2 /EHsc /W4 /fsanitize=address /Zi /nologo main.cpp && main.exe
+\end{lstlisting}
+
+{\Large \textbf{Проверка двух отрезков на пересечение}}
+\begin{lstlisting}
+struct pt {
+	int x, y;
+};
+inline int area (pt a, pt b, pt c) {
+	return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+inline bool intersect_1 (int a, int b, int c, int d) {
+	if (a > b)  swap (a, b);
+	if (c > d)  swap (c, d);
+	return max(a,c) <= min(b,d);
+}
+bool intersect (pt a, pt b, pt c, pt d) {
+	return intersect_1 (a.x, b.x, c.x, d.x)
+		&& intersect_1 (a.y, b.y, c.y, d.y)
+		&& area(a,b,c) * area(a,b,d) <= 0
+		&& area(c,d,a) * area(c,d,b) <= 0;
+}
+\end{lstlisting}
+{\Large \textbf{Конвекс Хулл}}
+\begin{lstlisting}
+vector<point> convex_hull(vector<point> &p) {
+    int mn = 0;
+    for (int i = 1; i < sz(p); ++i) {
+        if (p[mn].y > p[i].y || p[mn].y == p[i].y && p[mn].x > p[i].x)
+            mn = i;
+    }
+    point p0 = p[mn];
+    p.erase(find(p.begin(), p.end(), p0));
+    for (auto &i: p)
+        i = i - p0;
+    point add = p0;
+    p0 = {0, 0};
+    sort(p.begin(), p.end(), [](point a, point b) {
+        return (a ^ b) > 0 || (a ^ b) == 0 && a.len() > b.len();
+    });
+    p.push_back(p0);
+    vector<point> hull;
+    for (auto &i: p) {
+        while (sz(hull) > 1 && ((hull.back() - hull[sz(hull) - 2]) ^ (i - hull.back())) <= 0) {
+            hull.pop_back();
+        }
+        hull.push_back(i);
+    }
+    for (auto &i: hull)
+        i = i + add;
+    return hull;
+}
+\end{lstlisting}
+{\Large \textbf{Проверка точки на принадлежность выпуклому многоугольнику}}
+\begin{lstlisting}
+struct pt {int x, y;};
+struct ang {int a, b;};
+bool operator < (const ang & p, const ang & q) {
+	if (p.b == 0 && q.b == 0)
+		return p.a < q.a;
+	return p.a * 1ll * q.b < p.b * 1ll * q.a;
+}
+long long sq (pt & a, pt & b, pt & c) {return a.x*1ll*(b.y-c.y) + b.x*1ll*(c.y-a.y) + c.x*1ll*(a.y-b.y);}
+int main() {
+	int n;
+	cin >> n;
+	vector<pt> p (n);
+	int zero_id = 0;
+	for (int i=0; i<n; ++i) {
+		scanf ("%d%d", &p[i].x, &p[i].y);
+		if (p[i].x < p[zero_id].x || p[i].x == p[zero_id].x && p[i].y < p[zero_id].y)
+			zero_id = i;
+	}
+	pt zero = p[zero_id];
+	rotate (p.begin(), p.begin()+zero_id, p.end());
+	p.erase (p.begin());
+	--n;
+	vector<ang> a (n);
+	for (int i=0; i<n; ++i) {
+		a[i].a = p[i].y - zero.y;
+		a[i].b = p[i].x - zero.x;
+		if (a[i].a == 0)
+			a[i].b = a[i].b < 0 ? -1 : 1;
+	}
+	for (;;) {
+		pt q;
+		bool in = false;
+		if (q.x >= zero.x)
+			if (q.x == zero.x && q.y == zero.y)
+				in = true;
+			else {
+				ang my = { q.y-zero.y, q.x-zero.x };
+				if (my.a == 0)
+					my.b = my.b < 0 ? -1 : 1;
+				vector<ang>::iterator it = upper_bound (a.begin(), a.end(), my);
+				if (it == a.end() && my.a == a[n-1].a && my.b == a[n-1].b)
+					it = a.end()-1;
+				if (it != a.end() && it != a.begin()) {
+					int p1 = int (it - a.begin());
+					if (sq (p[p1], p[p1-1], q) <= 0)
+						in = true;
+				}
+			}
+		puts (in ? "INSIDE" : "OUTSIDE");
+	}
+}
+\end{lstlisting}
+{\Large \textbf{Z - функция}}
+\begin{lstlisting}
+vector<int> z_function (string s) {
+	int n = (int) s.length();
+	vector<int> z (n);
+	for (int i=1, l=0, r=0; i<n; ++i) {
+		if (i <= r)
+			z[i] = min (r-i+1, z[i-l]);
+		while (i+z[i] < n && s[z[i]] == s[i+z[i]])
+			++z[i];
+		if (i+z[i]-1 > r)
+			l = i,  r = i+z[i]-1;
+	}
+	return z;
+}
+\end{lstlisting}
+{\Large \textbf{Префикс-функция}}
+\begin{lstlisting}
+vector<int> prefix_function (string s) {
+	int n = (int) s.length();
+	vector<int> pi (n);
+	for (int i=1; i<n; ++i) {
+		int j = pi[i-1];
+		while (j > 0 && s[i] != s[j])
+			j = pi[j-1];
+		if (s[i] == s[j])  ++j;
+		pi[i] = j;
+	}
+	return pi;
+}
+\end{lstlisting}
+
+{\Large \textbf{Фенвик}}
+\begin{lstlisting}
+vector<int> t;
+int n;
+void init (int nn)
+{
+	n = nn;
+	t.assign (n, 0);
+}
+int sum (int r)
+{
+	int result = 0;
+	for (; r >= 0; r = (r & (r+1)) - 1)
+		result += t[r];
+	return result;
+}
+void inc (int i, int delta)
+{
+	for (; i < n; i = (i | (i+1)))
+		t[i] += delta;
+}
+int sum (int l, int r)
+{
+	return sum (r) - sum (l-1);
+}
+void init (vector<int> a)
+{
+	init ((int) a.size());
+	for (unsigned i = 0; i < a.size(); i++)
+		inc (i, a[i]);
+}
+\end{lstlisting}
+{\Large \textbf{СНМ}}
+\begin{lstlisting}
+#include <numeric>
+struct dsu {
+    int n;
+    vector<int> p;
+    vector<int> r;
+ 
+    dsu(int n) : n(n) {
+        p.resize(n);
+        iota(p.begin(), p.end(), 0);
+        r.assign(n, 1);
+    }
+ 
+    int get(int a) {
+        if (p[a] != a) {
+            p[a] = get(p[a]);
+        }
+        return p[a];
+    }
+ 
+    void join(int a, int b) {
+        a = get(a);
+        b = get(b);
+ 
+        if (a == b) {
+            return;
+        }
+ 
+        if (r[a] == r[b]) {
+            r[a]++;
+        }
+ 
+        if (r[a] > r[b]) {
+            p[b] = a;
+        } else {
+            p[a] = b;
+        }
+    }
+};
+\end{lstlisting}
+{\Large \textbf{Наибольшая возрастающая подпоследовательность}}
+\begin{lstlisting}
+vector<int> d(MAXN);
+d[0] = -INF;
+for (int i=1; i<=n; ++i)
+	d[i] = INF;
+for (int i=0; i<n; i++) {
+	int j = int (upper_bound (d.begin(), d.end(), a[i]) - d.begin());
+	if (d[j-1] < a[i] && a[i] < d[j])
+		d[j] = a[i];
+}
+\end{lstlisting}
+
+{\Large \textbf{Путь эйлера}}
+\begin{lstlisting}
+vector <ll> res;
+void eiler(ll v, vector <vector <pair <ll, ll>>>& gr, vector <char>& used) {
+    for (ll i = 0; i < gr[v].size(); ++i) {
+        ll to = gr[v][i].first;
+        ll ind = gr[v][i].second;
+        if (used[ind])
+            continue;
+        used[ind] = 1;
+        eiler(to, gr, used);
+    }
+    res.push_back(v);
+}
+\end{lstlisting}
+{\Large \textbf{Хэши}}
+\begin{lstlisting}
+i64 MD1 = 1e9 + 7;
+i64 MD2 = 1e9 + 9;
+ 
+struct Mint {
+    i64 x1, x2;
+ 
+    Mint (i64 x = 0) : x1(((x % MD1) + MD1) % MD1), x2(((x % MD2) + MD2) % MD2) {}
+    
+    Mint (i64 x1, i64 x2) : x1(((x1 % MD1) + MD1) % MD1), x2(((x2 % MD2) + MD2) % MD2) {}
+ 
+    friend Mint operator+(Mint l, Mint r) {
+        return Mint(l.x1 + r.x1, l.x2 + r.x2);
+    }
+    friend Mint operator-(Mint l, Mint r) {
+        return Mint(l.x1 - r.x1, l.x2 - r.x2);
+    }
+    friend Mint operator* (Mint l, Mint r) {
+        return Mint(l.x1 * r.x1, l.x2 * r.x2);
+    }
+    friend bool operator==(Mint l, Mint r) {
+        return l.x1 == r.x1 && l.x2 == r.x2;
+    }
+    friend bool operator!=(Mint l, Mint r) {
+        return l.x1 != r.x1 || l.x2 != r.x2;
+    }
+    friend bool operator<(Mint l, Mint r) {
+        return l.x1 < r.x1 || (l.x1 == r.x1 && l.x2 < r.x2);
+    }
+    void operator+=(Mint r) {
+        *this = *this + r;
+    }
+    void operator-=(Mint r) {
+        *this = *this - r;
+    }
+    void operator*=(Mint r) {
+        *this = *this * r;
+    }
+};
+
+Mint p = 179;
+vector<Mint> degp;
+ 
+int maxnum = 100000;
+
+vector<Mint> h;
+
+int n;
+Mint hash_substring(int l, int r) {
+    return (h[r + 1] - h[l]) * degp[n - l];
+}
+
+int main() {
+    degp.resize(maxnum + 1);
+    degp[0] = 1;
+    for (int i = 1; i <= maxnum; ++i) {
+        degp[i] = degp[i - 1] * p;
+    }
+
+    string s;
+    cin >> s;
+
+    n = s.size();
+
+    h.resize(n + 1);
+    h[0] = 0;
+    for (int i = 1; i <= n; ++i) {
+        h[i] = h[i - 1] + degp[i - 1] * (s[i - 1] - 'a' + 1);
+    }
+}
+\end{lstlisting}
+{\Large \textbf{«Деление» по модулю}}
+\begin{lstlisting}
+const int mod = 1e9 + 7;
+int binpow(int a, int n) {
+    int res = 1;
+    while (n != 0) {
+        if (n & 1)
+            res = res * a % mod;
+        a = a * a % mod;
+        n >>= 1;
+    }
+    return res;
+}
+
+int inv(int x) {
+    return binpow(x, mod - 2);
+}
+\end{lstlisting}
+
+{\Large \textbf{Метод отжига}}
+\begin{lstlisting}
+const int n = 100;
+const int k = 1000;
+int f(vector<int> &p) {
+    int s = 0;
+    for (int i = 0; i < n; i++) {
+        int d = 1;
+        for (int j = 0; j < i; j++)
+            if (abs(i - j) == abs(p[i] - p[j]))
+                d = 0;
+        s += d;
+    }
+    return s;
+}
+double rnd() { return double(rand()) / RAND_MAX; }
+int main() {
+    vector<int> v(n);
+    iota(v.begin(), v.end(), 0);
+    mt19937 gen(random_device{}());
+    shuffle(v.begin(), v.end(), gen);
+    int ans = f(v);
+
+    double t = 1;
+	// USE clock() < CLOCKS_PER_SEC * 0.95 from #include <ctime>
+    for (int i = 0; i < k && ans < n; i++) {
+        t *= 0.99;
+        vector<int> u = v;
+        swap(u[rand() % n], u[rand() % n]);
+        int val = f(u);
+        if (val > ans || rnd() < exp((val - ans) / t)) {
+            v = u;
+            ans = val;
+        }
+    }
+
+    for (int x : v)
+        cout << x + 1 << " ";
+
+    return 0;
+}
+\end{lstlisting}
+{\Large \textbf{Линейные уравнения}}
+\begin{lstlisting}
+typedef vector< vector<double> > matrix;
+
+vector<double> gauss(matrix a) {
+    int n = (int) a.size();
+    for (int i = 0; i < n; i++) {
+        int best = i;
+        for (int j = i + 1; j < n; j++)
+            if (abs(a[j][i]) > abs(a[best][i]))
+                best = j;
+        swap(a[best], a[i]);
+        for (int j = n; j >= i; j--)
+            a[i][j] /= a[i][i];
+        for (int j = 0; j < n; j++)
+            if (j != i)
+                for (int k = n; k >= i; k--)
+                    a[j][k] -= a[i][k] * a[j][i];
+    }
+    vector<double> ans(n);
+    for (int i = 0; i < n; i++)
+        ans[i] = a[i][n];
+    return ans;
+}
+\end{lstlisting}
+
+{\Large \textbf{Ordered Set}}
+\begin{lstlisting}
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+#define ordered_set tree<int, null_type, std::less<int>, rb_tree_tag,tree_order_statistics_node_update>
+
+ordered_set o_set;
+
+o_set.insert(2);
+
+// Finding the second smallest element
+*(o_set.find_by_order(1))
+
+// Finding the number of elements strictly less than k=4
+o_set.order_of_key(4)
+
+// Deleting 2 from the set if it exists
+if (o_set.find(2) != o_set.end()) o_set.erase(o_set.find(2));
+\end{lstlisting}
+
+{\Large \textbf{Решето Эратосфена}}
+\begin{lstlisting}
+vector<bool> sieve(int n) {
+    vector<bool> is_prime(n + 1, true);
+    for (int i = 2; i <= n; i++)
+        if (is_prime[i])
+            for (int j = 2 * i; j <= n; j += i)
+                is_prime[j] = false;
+    return is_prime;            
+}
+\end{lstlisting}
+
+{\Large \textbf{Решето Эратосфена за линию}}
+\begin{lstlisting}
+const int n = 1e6;
+
+int d[n + 1];
+vector<int> p;
+ 
+for (int k = 2; k <= n; k++) {
+    if (d[k] == 0) {
+        d[k] = k;
+        p.push_back(k);
+    }
+    for (int x : p) {
+        if (x > d[k] || x * k > n)
+            break;
+        d[k * x] = x;
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{Дейкстра mlogn}}
+\begin{lstlisting}
+vector<int> dijkstra(int s) {
+    vector<int> d(n, inf);
+    d[s] = 0;
+    using Pair = pair<int, int>;
+    priority_queue<Pair, vector<Pair>, greater<Pair>> q;
+    q.push({0, s});
+    while (!q.empty()) {
+        auto [cur_d, v] = q.top();
+        q.pop();
+        if (cur_d > d[v])
+            continue;
+        for (auto [u, w] : g[v]) {
+            if (d[u] > d[v] + w) {
+                d[u] = d[v] + w;
+                q.push({d[u], u});
+            }
+        }
+    }
+    return d;
+}
+\end{lstlisting}
+
+{\Large \textbf{Рюкзак}}
+\begin{lstlisting}
+for i in range(1, n + 1):
+    for j in range(0, W + 1):
+        dp[i][j] = dp[i - 1][j]
+        if a[i] <= j:
+            dp[i][j] = max(dp[i][j], dp[i - 1][j - a[i]] + c[i])
+\end{lstlisting}
+
+{\Large \textbf{Файлы}}
+\begin{lstlisting}
+#include <fstream>
+std::ifstream fin("input.txt"); 
+std::ofstream fout("output.txt");
+
+#include <cstdio>
+freopen("input.txt", "r", stdin);
+freopen("output.txt", "w", stdout);
+\end{lstlisting}
+
+{\Large \textbf{ДО (сумма на отрезке, изменение в точке)}}
+\begin{lstlisting}
+struct SegTree {
+    int size;
+    vector<int> tree;
+
+    void init(int n) {
+        size = 1;
+        while (size < n) size *= 2;
+        tree.assign(2 * size - 1, 0);
+    }
+
+    void build(vector<int> &a, int x, int lx, int rx) {
+        if (rx - lx == 1) {
+            if (lx < a.size()) tree[x] = a[lx];
+            return;
+        }
+        int m = (lx + rx) / 2;
+        build(a, 2 * x + 1, lx, m);
+        build(a, 2 * x + 2, m, rx);
+        tree[x] = tree[2 * x + 1] + tree[2 * x + 2];
+    }
+
+    void build(vector<int> &a) {
+        init(a.size());
+        build(a, 0, 0, size);
+    }
+
+    void set(int i, int v, int x, int lx, int rx) {
+        if (rx - lx == 1) {
+            tree[x] = v;
+            return;
+        }
+        int m = (lx + rx) / 2;
+        if (i < m) set(i, v, 2 * x + 1, lx, m);
+        else set(i, v, 2 * x + 2, m, rx);
+        tree[x] = tree[2 * x + 1] + tree[2 * x + 2];
+    }
+
+    void set(int i, int v) {
+        set(i, v, 0, 0, size);
+    }
+
+    int sum(int l, int r, int x, int lx, int rx) {
+        if (lx >= r || rx <= l) return 0;
+        if (lx >= l && rx <= r) return tree[x];
+        int m = (lx + rx) / 2;
+        return sum(l, r, 2 * x + 1, lx, m) + sum(l, r, 2 * x + 2, m, rx);
+    }
+
+    int sum(int l, int r) {
+        return sum(l, r, 0, 0, size);
+    }
+};
+\end{lstlisting}
+
+{\Large \textbf{ДО (kth единица)}}
+\begin{lstlisting}
+int kth(int k, int x, int lx, int rx) {
+	if (rx - lx == 1) {
+		return x - size + 1;
+	}
+	int m = (lx + rx) / 2;
+	if (tree[2 * x + 1] <= k) {
+		return kth(k - tree[2 * x + 1], 2 * x + 2, m, rx);
+	} else {
+		return kth(k, 2 * x + 1, lx, m);
+	}
+}
+
+int kth(int k) {
+	return kth(k, 0, 0, size);
+}
+\end{lstlisting}
+
+{\Large \textbf{ДО (прибавление и сумма на отрезке)}}
+\begin{lstlisting}
+struct SegTree {
+    struct node {
+        ll add;
+        ll sum;
+    };
+
+    vector<node> tree;
+    int size = 1;
+    const ll null = 0;
+
+    void init(int n) {
+        while (size < n) size *= 2;
+    }
+
+    void build(int n) {
+        init(n);
+        tree.assign(2 * size - 1, {0, 0});
+    }
+
+    void propagate(int x, int lx, int rx) {
+        if (rx - lx == 1) return;
+
+        tree[2 * x + 1].add += tree[x].add / 2;
+        tree[2 * x + 1].sum += tree[x].add / 2;
+        tree[2 * x + 2].add += tree[x].add / 2;
+        tree[2 * x + 2].sum += tree[x].add / 2;
+
+        tree[x].add = 0;
+    }
+
+    void modify(int l, int r, ll v, int x, int lx, int rx) {
+        propagate(x, lx, rx);
+
+        if (rx <= l || lx >= r) return;
+
+        if (lx >= l && rx <= r) {
+            tree[x].add += v * (rx - lx);
+            tree[x].sum += v * (rx - lx);
+            return;
+        }
+
+        int m = (lx + rx) / 2;
+        modify(l, r, v, 2 * x + 1, lx, m);
+        modify(l, r, v, 2 * x + 2, m, rx);
+        tree[x].sum = tree[2 * x + 1].sum + tree[2 * x + 2].sum;
+    }
+
+    void modify(int l, int r, ll v) {
+        modify(l, r, v, 0, 0, size);
+    }
+
+    ll get(int l, int r, int x, int lx, int rx) {
+        propagate(x, lx, rx);
+
+        if (rx <= l || lx >= r) return 0;
+        if (lx >= l && rx <= r) return tree[x].sum;
+
+        int m = (lx + rx) / 2;
+        return  get(l, r, 2 * x + 1, lx, m) + get(l, r, 2 * x + 2, m, rx);
+    }
+    
+    ll get(int l, int r) {
+        return get(l, r, 0, 0, size);
+    }
+};
+\end{lstlisting}
+
+{\Large \textbf{Геометрия}}
+\begin{lstlisting}
+#include <bits/stdc++.h>
+
+using namespace std;
+#define sz(v) (int)(v).size()
+const double EPS = 1e-9;
+const double PI = 3.141592653;
+
+int eq(double a, double b) {
+    return abs(a - b) < EPS;
+}
+
+struct Point{
+    double x, y;
+
+    Point(double x = 0, double y = 0): x(x), y(y) {}
+
+    Point operator + (Point other) const {
+        return {x+other.x,y+other.y};
+    }
+
+    Point operator - (Point other) const {
+        return {x-other.x,y-other.y};
+    }
+
+    Point operator * (double k) const {
+        return {x * k, y * k};
+    }
+
+    Point operator / (double k) const {
+        return {x / k, y / k};
+    }
+
+    double operator ^ (Point other) const {
+        return x*other.y - y*other.x;
+    }
+
+    double operator % (Point other) const {
+        return x*other.x + y*other.y;
+    }
+
+    bool operator == (Point other) const {
+        return eq(x, other.x) && eq(y, other.y);
+    }
+
+    bool operator != (Point other) const {
+        return !eq(x, other.x) || !eq(y, other.y);
+    }
+
+    bool operator < (Point other) const {
+        return x<other.x-EPS || eq(x, other.x) && y<other.y;
+    }
+    double len() const {
+        return sqrt(x*x + y*y);
+    }
+};
+istream& operator >> (istream& is, Point &p) {
+    is >> p.x >> p.y;
+    return is;
+}
+ostream& operator << (ostream& os, Point &p) {
+    os << p.x << ' ' << p.y;
+    return os;
+}
+struct line{
+    double a, b, c;
+};
+void out(Point p) {
+    cout << p.x << ' ' << p.y << '\n';
+}
+line get_line(Point p1, Point p2) {
+    return { p2.y-p1.y, p1.x-p2.x, -(p1^p2) };
+}
+int parallel(line l1, line l2) {
+    return eq(l1.a, 0) && eq(l2.a, 0) && -l1.c / l1.b != -l2.c / l2.b ||
+           eq(l1.b, 0) && eq(l2.b, 0) && -l1.c / l1.a != -l2.c / l2.a ||
+           eq(l1.a / l2.a, l1.b / l2.b) && (!(eq(l1.c, 0) && eq(l2.c, 0)) || !eq(l1.a / l2.a, l1.c / l2.c));
+}
+int Point_on_line(Point p, Point a, Point b) {
+    return eq((b-a)^(p-a), 0);
+}
+int Point_on_line2(Point p, line l) {
+    return eq(l.a*p.x + l.b*p.y + l.c, 0);
+}
+int Point_on_ray(Point p, Point a, Point b) {
+    return Point_on_line(p, a, b) && ((b-a)%(p-a) >= 0);
+}
+int Point_on_segment(Point p, Point a, Point b) {
+    return Point_on_line(p, a, b) && ((a-p)%(b-p) <= 0);
+}
+int Point_in_corner(Point p, Point a, Point o, Point b) {
+    Point v1 = a-o, v2 = b-o, v3 = p-o;
+    return (v1^v2)*(v1^v3) >= 0 && (v2^v1)*(v2^v3) >= 0;
+}
+double dist_Point_Point(Point p1, Point p2) {
+    return (p1-p2).len();
+}
+double dist_Point_line(Point p, Point a, Point b) {
+    return abs((p-a)^(p-b)) / (a-b).len();
+}
+double dist_Point_line2(Point p, line l) {
+    return abs(l.a*p.x + l.b*p.y + l.c) / sqrtl(l.a*l.a+l.b*l.b);
+}
+double dist_Point_ray(Point p, Point a, Point b)
+{
+    return ((b-a)%(p-a) >= 0? dist_Point_line(p, a, b) : dist_Point_Point(a, p));
+}
+double dist_Point_segment(Point p, Point a, Point b)
+{
+    return ((b-a)%(p-a) >= 0 && (a-b)%(p-b) >= 0? dist_Point_line(p, a, b) : min(dist_Point_Point(a, p),dist_Point_Point(b, p)));
+}
+double dist_line_line2(line l1, line l2)
+{
+    Point p;
+    if (l1.b == 0) p = { -l1.c / l1.a, 0 };
+    else p = { 0, -l1.c / l1.b };
+    return dist_Point_line2(p, l2);
+}
+double dist_line_line(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (!parallel(ab, cd))
+        return 0;
+    return dist_line_line2(ab, cd);
+}
+Point intersection_line_line(line l1, line l2)
+{
+    return {(l2.c*l1.b - l1.c*l2.b) / (l1.a*l2.b - l2.a*l1.b),
+            (l2.c*l1.a - l1.c*l2.a) / (l2.a*l1.b - l1.a*l2.b)};
+}
+set <Point> intersection_seg_seg(Point a, Point b, Point c, Point d)
+{
+    set <Point> ans;
+    if (eq((b - a) ^ (d - c), 0))
+    {
+        if (Point_on_segment(a, c, d)) ans.insert(a);
+        if (Point_on_segment(b, c, d)) ans.insert(b);
+        if (Point_on_segment(c, a, b)) ans.insert(c);
+        if (Point_on_segment(d, a, b)) ans.insert(d);
+    }
+    else
+    {
+        line ab = get_line(a, b), cd = get_line(c, d);
+        Point p = intersection_line_line(ab, cd);
+        if (Point_on_segment(p, a, b) && Point_on_segment(p, c, d)) ans.insert(p);
+    }
+    return ans;
+}
+double dist_seg_seg(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (parallel(ab, cd))
+        return min({dist_Point_segment(c, a, b), dist_Point_segment(d, a, b),
+                    dist_Point_segment(a, c, d), dist_Point_segment(b, c, d)});
+    Point p = intersection_line_line(ab, cd);
+    if (Point_on_segment(p, a, b) && Point_on_segment(p, c, d))
+        return 0;
+    return min({dist_Point_segment(c, a, b), dist_Point_segment(d, a, b),
+                dist_Point_segment(a, c, d), dist_Point_segment(b, c, d)});
+}
+double dist_seg_ray(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (parallel(ab, cd))
+        return min({dist_Point_ray(a, c, d), dist_Point_ray(b, c, d), dist_Point_segment(c, a, b)});
+    Point p = intersection_line_line(ab, cd);
+    if (Point_on_segment(p, a, b) && Point_on_ray(p, c, d))
+        return 0;
+    return min({dist_Point_ray(a, c, d), dist_Point_ray(b, c, d), dist_Point_segment(c, a, b)});
+}
+double dist_seg_line(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (parallel(ab, cd))
+        return min(dist_Point_line(a, c, d), dist_Point_line(b, c, d));
+    Point p = intersection_line_line(ab, cd);
+    if (Point_on_segment(p, a, b) && Point_on_line(p, c, d))
+        return 0;
+    return min(dist_Point_line(a, c, d), dist_Point_line(b, c, d));
+}
+double dist_ray_ray(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (parallel(ab, cd))
+        return min(dist_Point_ray(a, c, d), dist_Point_ray(c, a, b));
+    Point p = intersection_line_line(ab, cd);
+    if (Point_on_ray(p, a, b) && Point_on_ray(p, c, d))
+        return 0;
+    return min(dist_Point_ray(a, c, d), dist_Point_ray(c, a, b));
+}
+double dist_ray_line(Point a, Point b, Point c, Point d)
+{
+    line ab = get_line(a, b);
+    line cd = get_line(c, d);
+    if (parallel(ab, cd))
+        return dist_Point_line(a, c, d);
+    Point p = intersection_line_line(ab, cd);
+    if (Point_on_ray(p, a, b) && Point_on_line(p, c, d))
+        return 0;
+    return dist_Point_line(a, c, d);
+}
+Point projection(line l, Point p)
+{
+    Point normal = { l.a, l.b };
+    double d = dist_Point_line2(p, l);
+    normal = normal / normal.len() * d;
+    Point base = p + normal;
+    if (!eq(l.a*base.x + l.b*base.y + l.c, 0))
+        base = base - normal * 2;
+    return base;
+}
+pair<int, int> tangent_polygon(Point a, vector<Point> &p) {
+    int p1 = 0, p2 = 0, n = sz(p);
+    for (int i = 20; i >= 0; --i) {
+        {
+            int nxt = (p1 + (1 << i)) % n, prev = ((p1 - (1 << i)) % n + n) % n;
+            if (((p[p1] - a) ^ (p[nxt] - a)) > 0) {
+                p1 = nxt;
+            }
+            if (((p[p1] - a) ^ (p[prev] - a)) > 0) {
+                p1 = prev;
+            }
+        }
+        {
+            int nxt = (p2 + (1 << i)) % n, prev = ((p2 - (1 << i)) % n + n) % n;
+            if (((p[p2] - a) ^ (p[nxt] - a)) < 0) {
+                p2 = nxt;
+            }
+            if (((p[p2] - a) ^ (p[prev] - a)) < 0) {
+                p2 = prev;
+            }
+        }
+    }
+    return {p1, p2};
+}
+vector <Point> tangent_circle(Point o, double r, Point m) {
+    if (r > dist_Point_Point(o, m)) {
+        return {};
+    }
+    if (eq(r, dist_Point_Point(o, m))) {
+        return { m };
+    }
+    double d = r*r / dist_Point_Point(o, m);
+    Point om = m-o;
+    Point oh = om / om.len() * d;
+    Point h = o + oh;
+    line l = get_line(o, m);
+    Point normal = { l.a, l.b };
+    d = sqrtl(r*r - oh.len()*oh.len());
+    normal = normal / normal.len() * d;
+    return { h+normal, h-normal };
+}
+vector <Point> intersection_circle_circle(Point o1, double r1, Point o2, double r2) {
+    double d = dist_Point_Point(o1, o2);
+    if (o1 == o2 && eq(r1, r2)) {
+        return {};
+    }
+    if (d > r1+r2 || d < abs(r1-r2)) {
+        return {};
+    }
+    if (eq(d, r1+r2)) {
+        Point v = o2 - o1;
+        v = v / v.len() * r1;
+        return { o1 + v };
+    }
+    if (eq(d, abs(r1-r2))) {
+        if (r1 > r2) {
+            swap(r1, r2);
+            swap(o1, o2);
+        }
+        Point v = o1-o2;
+        v = v / v.len() * r2;
+        return { o2 + v };
+    }
+    double o1h_len = (d*d + r1*r1 - r2*r2) / (2*d);
+    Point v = o2-o1;
+    Point o1h = v / v.len() * o1h_len;
+    Point h = o1 + o1h;
+    line l = get_line(o1, o2);
+    Point normal = { l.a, l.b };
+    double dist = dist_Point_Point(o1, h);
+    d = sqrtl(r1*r1 - dist*dist);
+    normal = normal / normal.len() * d;
+    return { h+normal, h-normal };
+}
+void reorder(vector<Point> &p) {
+    int mn = 0;
+    for (int i = 1; i < sz(p); ++i) {
+        if (p[i] < p[mn]) {
+            mn = i;
+        }
+    }
+    rotate(p.begin(), p.begin() + mn, p.end());
+}
+vector<Point> sum_of_polygons(vector<Point> a, vector<Point> b) {
+    vector<Point> sum;
+    reorder(a), reorder(b);
+    a.push_back(a[0]), b.push_back(b[0]);
+    a.push_back(a[1]), b.push_back(b[1]);
+    int i = 0, j = 0;
+    while (i < sz(a) - 2 || j < sz(b) - 2) {
+        sum.push_back(a[i] + b[j]);
+        auto cross = ((a[i + 1] - a[i]) ^ (b[j + 1] - b[j]));
+        if ((cross > 0 || eq(cross, 0)) && i < sz(a) - 2) {
+            ++i;
+        }
+        if ((cross < 0 || eq(cross, 0)) && j < sz(b) - 2) {
+            ++j;
+        }
+    }
+    return sum;
+}
+\end{lstlisting}
+
+{\Large \textbf{Касотмный хэш}}
+\begin{lstlisting}
+struct custom_hash {
+    static uint64_t splitmix64(uint64_t x) {
+        x += 0x9e3779b97f4a7c15;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+        return x ^ (x >> 31);
+    }
+    size_t operator()(uint64_t x) const {
+        static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+        return splitmix64(x + FIXED_RANDOM);
+    }
+};
+unordered_map<ll, ll, custom_hash>
+\end{lstlisting}
+
+{\Large \textbf{Манакер}}
+\begin{lstlisting}
+vector<int> d1 (n);
+int l=0, r=-1;
+for (int i=0; i<n; ++i) {
+  int k = i>r ? 1 : min (d1[l+r-i], r-i+1);
+  while (i+k < n && i-k >= 0 && s[i+k] == s[i-k])  ++k;
+  d1[i] = k;
+  if (i+k-1 > r)
+    l = i-k+1,  r = i+k-1;
+}
+vector<int> d2 (n);
+l=0, r=-1;
+for (int i=0; i<n; ++i) {
+  int k = i>r ? 0 : min (d2[l+r-i+1], r-i+1);
+  while (i+k < n && i-k-1 >= 0 && s[i+k] == s[i-k-1])  ++k;
+  d2[i] = k;
+  if (i+k-1 > r)
+    l = i-k,  r = i+k-1;
+}
+\end{lstlisting}
+
+{\Large \textbf{Прагмы}}
+\begin{lstlisting}
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,tune=native")
+#pragma GCC optimize("unroll-loops")
+\end{lstlisting}
+
+{\Large \textbf{Расстояние Левенштейна}}
+\begin{lstlisting}
+int levenshtein(const string& A, const string& B) {
+    int n = (int)A.size(), m = (int)B.size();
+    vector<int> prev(m+1), cur(m+1);
+    iota(prev.begin(), prev.end(), 0); // dp[0][j] = j
+    for (int i = 1; i <= n; ++i) {
+        cur[0] = i; // dp[i][0] = i
+        for (int j = 1; j <= m; ++j) {
+            int cost = (A[i-1] == B[j-1]) ? 0 : 1;
+            cur[j] = min({
+                prev[j] + 1,        // delete A[i-1]
+                cur[j-1] + 1,       // insert B[j-1]
+                prev[j-1] + cost    // replace/match
+            });
+        }
+        swap(prev, cur);
+    }
+    return prev[m];
+}
+\end{lstlisting}
+
+{\Large \textbf{КМП (поиск подстроки в строке)}}
+\begin{lstlisting}
+vector<int> build_pi(string_view p) {
+    int m = (int)p.size();
+    vector<int> pi(m, 0);
+    for (int i = 1; i < m; ++i) {
+        int j = pi[i - 1];
+        while (j > 0 && p[i] != p[j]) j = pi[j - 1];
+        if (p[i] == p[j]) ++j;
+        pi[i] = j;
+    }
+    return pi;
+}
+vector<int> kmp_search(string_view s, string_view p) { // find p in s
+    vector<int> res;
+    if (p.empty()) {
+        res.reserve(s.size() + 1);
+        for (int i = 0; i <= (int)s.size(); ++i) res.push_back(i);
+        return res;
+    }
+    vector<int> pi = build_pi(p);
+    int n = (int)s.size(), m = (int)p.size();
+    int j = 0;
+    for (int i = 0; i < n; ++i) {
+        while (j > 0 && s[i] != p[j]) j = pi[j - 1];
+        if (s[i] == p[j]) ++j;
+        if (j == m) {
+            res.push_back(i - m + 1);
+            j = pi[j - 1];
+        }
+    }
+    return res;
+}
+\end{lstlisting}
+
+{\Large \textbf{Ахо-корасик (с суффиксными переходами)}}
+\begin{lstlisting}
+const int k = 26;
+ 
+struct vertex {
+    vertex* to[k] = {0};
+    vertex* go[k] = {0};
+    vertex* link = nullptr;
+    vertex* out_link = nullptr;
+    vertex* p = nullptr;
+    int pch = -1;
+    bool term = false;
+    vector<int> out;
+    vertex(int _pch, vertex* _p) : p(_p), pch(_pch) {}
+};
+ 
+vertex* root = new vertex(-1, nullptr);
+ 
+int cid(char c) {
+    return c - 'a';
+}
+ 
+void add_string(const string& s, int id) {
+    vertex* v = root;
+    for (char ch : s) {
+        int c = cid(ch);
+        if (c < 0 || c >= k) {
+            continue;
+        }
+        if (!v->to[c]) {
+            v->to[c] = new vertex(c, v);
+        }
+        v = v->to[c];
+    }
+    v->term = true;
+    v->out.push_back(id);
+}
+ 
+vertex* go(vertex* v, int c);
+ 
+vertex* link(vertex* v) {
+    if (v->link) {
+        return v->link;
+    }
+    if (v == root || v->p == root) {
+        return v->link = root;
+    }
+    return v->link = go(link(v->p), v->pch);
+}
+ 
+vertex* go(vertex* v, int c) {
+    if (v->go[c]) {
+        return v->go[c];
+    }
+    if (v->to[c]) {
+        return v->go[c] = v->to[c];
+    }
+    if (v == root) {
+        return v->go[c] = root;
+    }
+    return v->go[c] = go(link(v), c);
+}
+ 
+vertex* out_link(vertex* v) {
+    if (v->out_link) {
+        return v->out_link;
+    }
+    vertex* u = link(v);
+    if (u == v) {
+        return v->out_link = nullptr;
+    }
+    if (!u) {
+        return v->out_link = nullptr;
+    }
+    if (u->term) {
+        return v->out_link = u;
+    }
+    return v->out_link = out_link(u);
+}
+ 
+template<class f>
+void find_all(const string& text, f on_match) {
+    vertex* v = root;
+    for (int i = 0; i < (int)text.size(); ++i) {
+        int c = cid(text[i]);
+        if (c < 0 || c >= k) {
+            v = root;
+            continue;
+        }
+        v = go(v, c);
+        if (v->term) {
+            for (int id : v->out) {
+                on_match(i, id);
+            }
+        }
+        for (vertex* u = out_link(v); u; u = out_link(u)) {
+            for (int id : u->out) {
+                on_match(i, id);
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{Ахо-корасик (без суффиксных переходов)}}
+\begin{lstlisting}
+struct node {
+    int nxt[26];
+    int term = 0;
+    int p = -1;
+    int pch;
+    int link = -1, super_link = -1;
+
+    node(int p = -1, int ch = -1) : p(p), pch(ch) {
+        fill(begin(nxt), end(nxt), 0);
+    }
+};
+
+vector<node> trie(1);
+
+void add(string &s) {
+    int v = 0;
+    for (char ch: s) {
+        int c = ch - 'a';
+        if (trie[v].nxt[c] == 0) {
+            trie[v].nxt[c] = sz(trie);
+            trie.emplace_back(v, c);
+        }
+        v = trie[v].nxt[c];
+    }
+    trie[v].term = 1;
+}
+
+void bfs() {
+    queue<int> q;
+    q.push(0);
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+        for (int c: trie[v].nxt) {
+            if (c != 0)
+                q.push(c);
+        }
+        if (v == 0) {
+            trie[v].link = trie[v].super_link = 0;
+            continue;
+        }
+        if (trie[v].p == 0) {
+            trie[v].link = trie[v].super_link = 0;
+        } else {
+            trie[v].link = trie[trie[trie[v].p].link].nxt[trie[v].pch];
+            trie[v].super_link = (trie[trie[v].link].term ? trie[v].link : trie[trie[v].link].super_link);
+        }
+        for (int c = 0; c < 26; ++c) {
+            if (trie[v].nxt[c] == 0)
+                trie[v].nxt[c] = trie[trie[v].link].nxt[c];
+        }
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{Суффиксный автомат}}
+\begin{lstlisting}
+const int K = 26;
+struct sam {
+    struct state {
+        int link;
+        int len;
+        int next[K];
+        state() {
+            link = -1;
+            len = 0;
+            for (int i = 0; i < K; ++i) {
+                next[i] = -1;
+            }
+        }
+    };
+    vector<state> st;
+    int last;
+    sam() {
+        st.push_back(state());
+        last = 0;
+    }
+    int cid(char c) {
+        if ('A' <= c && c <= 'Z') {
+            return c - 'A';
+        }
+        return c - 'a';
+    }
+    void extend_char(int c) {
+        int cur = st.size();
+        st.push_back(state());
+        st[cur].len = st[last].len + 1;
+        int p = last;
+        while (p != -1 && st[p].next[c] == -1) {
+            st[p].next[c] = cur;
+            p = st[p].link;
+        }
+        if (p == -1) {
+            st[cur].link = 0;
+        } else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) {
+                st[cur].link = q;
+            } else {
+                int clone = st.size();
+                st.push_back(st[q]);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) {
+                    st[p].next[c] = clone;
+                    p = st[p].link;
+                }
+                st[q].link = clone;
+                st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+    void extend_string(const string& s) {
+        for (char ch : s) {
+            int c = cid(ch);
+            if (c < 0 || c >= K) {
+                last = 0;
+                continue;
+            }
+            extend_char(c);
+        }
+    }
+    int count_distinct_substrings() {
+        int ans = 0;
+        for (int v = 1; v < (int)st.size(); ++v) {
+            ans += st[v].len - st[st[v].link].len;
+        }
+        return ans;
+    }
+    bool contains(const string& t) {
+        int u = 0;
+        for (char ch : t) {
+            int c = cid(ch);
+            if (st[u].next[c] == -1) {
+                return false;
+            }
+            u = st[u].next[c];
+        }
+        return true;
+    }
+};
+\end{lstlisting}
+
+{\Large \textbf{Римские числа}}
+\begin{lstlisting}
+int RomanToDecimal(const std::string& roman) {
+    std::unordered_map<char, int> values = {
+        {'I', 1}, {'V', 5}, {'X', 10}, {'L', 50},
+        {'C', 100}, {'D', 500}, {'M', 1000}
+    };
+    int result = 0;
+    int n = roman.size();
+    for (int i = 0; i < n; ++i) {
+        int value = values[roman[i]];
+        if (i + 1 < n && values[roman[i+1]] > value) {
+            result -= value;
+        } else {
+            result += value;
+        }
+    }
+    return result;
+}
+
+string DecimalToRoman(int num) {
+    if (num <= 0 || num > 3999)
+        throw invalid_argument("num must be in 1..3999");
+
+    static const pair<int, const char*> map[] = {
+        {1000, "M"}, {900, "CM"}, {500, "D"}, {400, "CD"},
+        {100,  "C"}, {90,  "XC"}, {50,  "L"}, {40,  "XL"},
+        {10,   "X"}, {9,   "IX"}, {5,   "V"}, {4,   "IV"},
+        {1,    "I"}
+    };
+
+    string out;
+    for (auto [val, sym] : map) {
+        while (num >= val) {
+            out += sym;
+            num -= val;
+        }
+    }
+    return out;
+}
+\end{lstlisting}
+
+{\Large \textbf{Венгерский алгоритм}}
+
+Дана матрица $a$ размера $n \times n$. Требуется найти такую перестановку $p$ длины $n$, что величина $\sum a[i][p[i]]$ — минимальна.
+
+\textbf{Решение написано в 1-индексации, чтобы решать задачу максимизации нужно умножить $a[i][j]$ на -1.}
+\begin{lstlisting}
+vector<int> u(n + 1), v(m + 1), p(m + 1), way(m + 1);
+for (int i = 1; i <= n; ++i) {
+	p[0] = i;
+	int j0 = 0;
+	vector<int> minv(m + 1, INF);
+	vector<char> used(m + 1, false);
+	do {
+		used[j0] = true;
+		int i0 = p[j0],  delta = INF,  j1;
+		for (int j = 1; j <= m; ++j)
+			if (!used[j]) {
+				int cur = a[i0][j] - u[i0] - v[j];
+				if (cur < minv[j])
+					minv[j] = cur,  way[j] = j0;
+				if (minv[j] < delta)
+					delta = minv[j],  j1 = j;
+			}
+		for (int j = 0; j <= m; ++j)
+			if (used[j])
+				u[p[j]] += delta,  v[j] -= delta;
+			else
+				minv[j] -= delta;
+		j0 = j1;
+	} while (p[j0] != 0);
+	do {
+		int j1 = way[j0];
+		p[j0] = p[j1];
+		j0 = j1;
+	} while (j0);
+}
+vector<int> ans (n+1);
+for (int j = 1; j <= m; ++j)
+	ans[p[j]] = j;
+\end{lstlisting}
+
+{\Large \textbf{Эйлеров путь}}
+\begin{lstlisting}
+vector<vector<pii>> g;
+vector<int> fr, used, e;
+void dfs(int v) {
+	while (fr[v] < sz(g[v])) {
+		auto &[to, id] = g[v][fr[v]];
+		++fr[v];
+		if (used[id])
+			continue;
+		used[id] = true;
+		dfs(to);
+	}
+	e.eb(v);
+}
+void solve() {
+	int n, m;
+    vector<int> odd;
+	vector<pii> edges;
+    // INPUT
+    fr.resize(n);
+	g.resize(n);
+	for (auto &[u, v] : edges) {
+		g[u].emplace_back(v, m);
+		g[v].emplace_back(u, m++);
+	}
+	int v1 = 0, v2;
+	bool f = false;
+	if (odd.size() == 2) {
+		v1 = odd[0];
+		v2 = odd[1];
+		g[v1].emplace_back(v2, m);
+		g[v2].emplace_back(v1, m++);
+		odd.clear();
+		f = true;
+	}
+	if (!odd.empty()) {
+		cout << -1;
+		return;
+	}
+	used.resize(m);
+	dfs(v1);
+	if (f) {
+		for (int i = 0; i < m - 1; ++i) {
+			if (e[i] == v1 && e[i + 1] == v2 || e[i] == v2 && e[i + 1] == v1) {
+				vector<int> new_e(e.begin() + i + 1, e.end());
+				new_e.insert(new_e.end(), e.begin(), e.begin() + i);
+				e = new_e;
+				break;
+			}
+		}
+		--m;
+	}
+	// euler tour in e
+}
+\end{lstlisting}
+
+{\Large \textbf{Ли Чао с добавлением прямой на отрезке}}
+\begin{lstlisting}
+struct Line {
+    ll a, b;
+    Line(ll a = 0, ll b = INF): a(a), b(b) {};
+    ll getY(ll x) {
+        return a * x + b;
+    }
+};
+
+struct Node {
+    Line L;
+    Node(Line L = Line()): L(L) {};
+};
+
+const int N = 2e5, MOD = 2e5;
+int q;
+ll p = 0;
+Node t[N * 20];
+
+void insert_line(int v, ll tl, ll tr, Line l) {
+    if (tl > tr) {
+        return;
+    }
+    ll tm = tl + (tr - tl) / 2;
+    Line l2 = t[v].L;
+    int l_lower = l.getY(tl) < l2.getY(tl);
+    int m_lower = l.getY(tm) < l2.getY(tm);
+    if (m_lower) {
+        swap(l, t[v].L);
+    }
+    if (tl == tr) {
+        return;
+    }
+    if (l_lower ^ m_lower) {
+        insert_line(v * 2, tl, tm, l);
+    } else {
+        insert_line(v * 2 + 1, tm + 1, tr, l);
+    }
+}
+
+void update(int v, ll tl, ll tr, ll ql, ll qr, Line l) {
+    if (tr < ql || qr < tl) {
+        return;
+    }
+    if (ql <= tl && tr <= qr) {
+        insert_line(v, tl, tr, l);
+        return;
+    }
+    ll tm = tl + (tr - tl) / 2;
+    update(v * 2, tl, tm, ql, qr, l);
+    update(v * 2 + 1, tm + 1, tr, ql, qr, l);
+}
+
+ll get_min(int v, ll tl, ll tr, ll x) {
+    if (tl > tr) {
+        return INF;
+    }
+    ll res = t[v].L.getY(x), tm = tl + (tr - tl) / 2;
+    if (tl == tr) {
+        return res;
+    }
+    if (x <= tm) {
+        res = min(res, get_min(v * 2, tl, tm, x));
+        return res;
+    } else {
+        res = min(res, get_min(v * 2 + 1, tm + 1, tr, x));
+        return res;
+    }
+}
+
+void solve() {
+    cin >> q;
+    while (q--) {
+        int tp; cin >> tp;
+        if (tp == 1) {
+            ll a, b, l, r;
+            cin >> a >> b >> l >> r;
+            a += p, b += p;
+            update(1, -N, N, l, r, Line(a, b));
+        } else {
+            ll x; cin >> x;
+            p = get_min(1, -N, N, x);
+            p = (p == INF ? -1 : p);
+            cout << p << '\n';
+            p = (p % MOD + MOD) % MOD;
+        }
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{2-SAT}}
+\begin{lstlisting}
+const int N = 100010;
+int n, m;
+vector<int> g[N * 2], rg[N * 2];
+int used[N * 2];
+vector<int> ts;
+
+void dfs(int v) {
+    used[v] = 1;
+    for (int i: g[v]) {
+        if (!used[i]) dfs(i);
+    }
+    ts.push_back(v);
+}
+
+void dfs2(int v, int c) {
+    used[v] = c;
+    for (int i: rg[v]) {
+        if (!used[i])
+            dfs2(i, c);
+    }
+}
+
+void solve() {
+    while (cin >> n >> m) {
+        for (int i = 0; i < 2 * n; ++i)
+            g[i] = rg[i] = {}, used[i] = 0;
+        ts = {};
+        for (int i = 1; i <= m; ++i) {
+            int i1, e1, i2, e2;
+            cin >> i1 >> e1 >> i2 >> e2;
+            g[i1 * 2 + (e1 ^ 1)].push_back(i2 * 2 + e2);
+            rg[i2 * 2 + e2].push_back(i1 * 2 + (e1 ^ 1));
+            g[i2 * 2 + (e2 ^ 1)].push_back(i1 * 2 + e1);
+            rg[i1 * 2 + e1].push_back(i2 * 2 + (e2 ^ 1));
+        }
+        for (int i = 0; i < 2 * n; ++i) {
+            if (!used[i]) dfs(i);
+        }
+        for (int i = 0; i < 2 * n; ++i) {
+            used[i] = 0;
+        }
+        reverse(all(ts));
+        for (int i = 0, j = 1; i < 2 * n; ++i) {
+            if (!used[ts[i]]) dfs2(ts[i], j++);
+        }
+        bool possible = true;
+        for (int i = 0; i < n; ++i) {
+            if (used[2 * i] == used[2 * i + 1]) {
+                possible = false;
+                break;
+            }
+        }
+        for (int i = 0; i < n; ++i)
+            cout << (used[i * 2] < used[i * 2 + 1] ? 1 : 0);
+        cout << '\n';
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{HLD}}
+\begin{lstlisting}
+const int N = 1e5 + 1;
+vector<int> g[N];
+int sz[N], p[N], tin[N], tout[N], head[N], t[N * 10];
+int timer = 1, n;
+
+void sizes(int v, int anc) {
+    sz[v] = 1;
+    for (int &i: g[v]) {
+        if (i == anc)
+            continue;
+        p[i] = v;
+        sizes(i, v);
+        sz[v] += sz[i];
+        if (sz[i] > sz[g[v][0]])
+            swap(i, g[v][0]);
+    }
+}
+
+void hld(int v, int anc) {
+    tin[v] = timer++;
+    for (int i: g[v]) {
+        if (i == anc)
+            continue;
+        head[i] = (i == g[v][0] ? head[v] : i);
+        hld(i, v);
+    }
+    tout[v] = timer;
+}
+
+int upper(int a, int b) {
+    return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int get(int v, int tl, int tr, int ql, int qr) {
+    if (qr < tl || tr < ql)
+        return -inf;
+    if (ql <= tl && tr <= qr)
+        return t[v];
+    int m = (tl + tr) >> 1;
+    return max(get(v * 2, tl, m, ql, qr), get(v * 2 + 1, m + 1, tr, ql, qr));
+}
+
+void add(int v, int tl, int tr, int pos, int x) {
+    if (tl == tr) {
+        t[v] += x;
+        return;
+    }
+    int m = (tl + tr) >> 1;
+    if (pos <= m) add(v * 2, tl, m, pos, x);
+    else add(v * 2 + 1, m + 1, tr, pos, x);
+    t[v] = max(t[v * 2], t[v * 2 + 1]);
+}
+
+void up(int &a, int &b, int &res) {
+    while (!upper(head[a], b)) {
+        res = max(res, get(1, 1, timer, tin[head[a]], tin[a]));
+        a = p[head[a]];
+    }
+}
+
+int get_max(int a, int b) {
+    int res = -inf;
+    up(a, b, res);
+    up(b, a, res);
+    if (!upper(a, b))
+        swap(a, b);
+    res = max(res, get(1, 1, timer, tin[a], tin[b]));
+    return res;
+}
+//TODO p[root] = head[root] = root;
+\end{lstlisting}
+
+{\Large \textbf{Центроидная декомпозиция}}
+\begin{lstlisting}
+const int N = 100010, LOG = 20;
+vector<int> g[N];
+int cent[N], _size[N], pr[N][LOG];
+vector<int> a;
+// TODO fill(cent, cent + N, -1)
+int dfs(int v, int p) {
+    if (cent[v] != -1)
+        return 0;
+    _size[v] = 1;
+    for (int i: g[v]) {
+        if (i == p)
+            continue;
+        _size[v] += dfs(i, v);
+    }
+    a.push_back(v);
+    return _size[v];
+}
+
+void dfs2(int v, int p, int c, int level) {
+    if (cent[v] != -1)
+        return;
+    pr[v][level] = c;
+    for (int i: g[v]) {
+        if (i == p)
+            continue;
+        dfs2(i, v, c, level);
+    }
+}
+
+void find_centroid(int v, int level) {
+    a.clear();
+    int s = dfs(v, -1);
+    for (int i: a) {
+        if (_size[i] > s / 2) {
+            v = i;
+            break;
+        }
+    }
+    dfs2(v, -1, v, level);
+    cent[v] = level;
+    for (int i: g[v]) {
+        if (cent[i] != -1)
+            find_centroid(i, level + 1);
+    }
+}
+\end{lstlisting}
+
+{\Large \textbf{Декартач по неявному ключу}}
+\begin{lstlisting}
+mt19937 Rand(chrono::steady_clock::now().time_since_epoch().count());
+struct Node {
+    Node *l, *r;
+    int x;
+    int g;
+    int sz;
+    int y;
+    Node(int x) : x(x), g(x), sz(1) {
+        y = (int)Rand();
+        l = r = nullptr;
+    }
+};
+
+Node *treap = nullptr;
+
+int get_sz(Node *t) {
+    return t ? t->sz : 0;
+}
+
+int get_g(Node *t) {
+    return t ? t->g : 0;
+}
+
+void recalc(Node *t) {
+    if (!t) return;
+    t->sz = 1 + get_sz(t->l) + get_sz(t->r);
+    t->g = t->x;
+    t->g = gcd(t->g, get_g(t->l));
+    t->g = gcd(t->g, get_g(t->r));
+}
+
+Node *merge(Node *t1, Node *t2) {
+    if (!t1) return t2;
+    if (!t2) return t1;
+    if (t1->y >= t2->y) {
+        t1->r = merge(t1->r, t2);
+        recalc(t1);
+        return t1;
+    } else {
+        t2->l = merge(t1, t2->l);
+        recalc(t2);
+        return t2;
+    }
+}
+
+pair<Node*, Node*> split(Node *t, int k) {
+    if (!t) {
+        return {nullptr, nullptr};
+    }
+    int left_sz = get_sz(t->l);
+    if (left_sz >= k) {
+        auto [a, b] = split(t->l, k);
+        t->l = b;
+        recalc(t);
+        return {a, t};
+    } else {
+        auto [a, b] = split(t->r, k - left_sz - 1);
+        t->r = a;
+        recalc(t);
+        return {t, b};
+    }
+}
+
+int get_gcd(int l, int r) {
+    auto [a, bc] = split(treap, l);
+    auto [b, c] = split(bc, r - l + 1);
+    int ans = get_g(b);
+    treap = merge(a, merge(b, c));
+    return ans;
+}
+
+void update(int pos, int x) {
+    auto [a, bc] = split(treap, pos);
+    auto [b, c] = split(bc, 1);
+    delete b;
+    treap = merge(a, merge(new Node(x), c));
+}
+
+void insert(int pos, int x) {
+    auto [a, b] = split(treap, pos);
+    treap = merge(a, merge(new Node(x), b));
+}
+
+void erase(int pos) {
+    auto [a, bc] = split(treap, pos);
+    auto [b, c] = split(bc, 1);
+    delete b;
+    treap = merge(a, c);
+}
+\end{lstlisting}
+
+\end{document}

@@ -1,0 +1,8 @@
+[G++ fast run]
+g++ -std=c++20 -O2 -pipe -Wall -Wextra -Wshadow -Wconversion -Wno-unused-result -DLOCAL -static -s main.cpp -o main.exe && main.exe
+[G++ with sanitizers (ASan+UBSan)]
+g++ -std=c++20 -O1 -g -Wall -Wextra -Wshadow -fno-omit-frame-pointer -fsanitize=address,undefined main.cpp -o main_asan.exe && main_asan.exe
+[MSVC fast run]
+cl /std:c++20 /O2 /EHsc /W4 /DLOCAL /nologo main.cpp && main.exe
+[MSVC with AddressSanitizer]
+cl /std:c++20 /O2 /EHsc /W4 /fsanitize=address /Zi /nologo main.cpp && main.exe
